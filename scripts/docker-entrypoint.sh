@@ -41,4 +41,10 @@ fi
 # shared volume would otherwise wedge the unprivileged app — EACCES on .env/config).
 chown -R node:node /paperclip
 
+# Normalize a CLI-created instance config for containerized serving: its local bind host
+# ("127.0.0.1") overrides the env HOST and hides the server from platform healthchecks.
+if [ -f /paperclip/instances/default/config.json ]; then
+    sed -i 's@"host": "127.0.0.1"@"host": "0.0.0.0"@' /paperclip/instances/default/config.json
+fi
+
 exec gosu node "$@"
