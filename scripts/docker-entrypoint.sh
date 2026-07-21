@@ -47,4 +47,24 @@ if [ -f /paperclip/instances/default/config.json ]; then
     sed -i 's@"host": "127.0.0.1"@"host": "0.0.0.0"@' /paperclip/instances/default/config.json
 fi
 
+# Optional tailnet bridge for SSH execution targets: when TS_AUTHKEY is set, join the
+# tailnet (userspace) and expose MAC_SSH_TAILNET_HOST:22 on 127.0.0.1:2222 for the ssh
+# driver (plain TCP in, tailscale-dialed out). Inert without the env vars.
+if [ -n "$TS_AUTHKEY" ]; then
+    mkdir -p /paperclip/tailscale
+    tailscaled --state=/paperclip/tailscale/tailscaled.state \
+        --socket=/paperclip/tailscale/tailscaled.sock \
+        --tun=userspace-networking >/tmp/tailscaled.log 2>&1 &
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        tailscale --socket=/paperclip/tailscale/tailscaled.sock up \
+            --authkey="$TS_AUTHKEY" --hostname=paperclip-railway --accept-dns=true \
+            && break || sleep 2
+    done
+    if [ -n "$MAC_SSH_TAILNET_HOST" ]; then
+        socat TCP-LISTEN:2222,bind=127.0.0.1,fork,reuseaddr \
+            EXEC:"tailscale --socket=/paperclip/tailscale/tailscaled.sock nc $MAC_SSH_TAILNET_HOST 22" \
+            >/tmp/socat.log 2>&1 &
+    fi
+fi
+
 exec gosu node "$@"

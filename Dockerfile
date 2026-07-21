@@ -3,8 +3,18 @@ FROM node:lts-trixie-slim AS base
 ARG USER_UID=1000
 ARG USER_GID=1000
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates gosu curl gh git wget ripgrep python3 \
+  && apt-get install -y --no-install-recommends ca-certificates gosu curl gh git wget ripgrep python3 socat \
   && rm -rf /var/lib/apt/lists/* \
+
+# Tailscale (userspace mode) + socat: outbound tailnet bridge for SSH execution targets
+# (Railway containers have no /dev/net/tun; tailscaled runs userspace and `tailscale nc`
+# dials tailnet hosts; socat exposes it as a plain local TCP port for the ssh driver).
+RUN curl -fsSL https://pkgs.tailscale.com/stable/tailscale_1.78.1_amd64.tgz -o /tmp/ts.tgz \
+  && tar -xzf /tmp/ts.tgz -C /tmp \
+  && mv /tmp/tailscale_1.78.1_amd64/tailscale /usr/local/bin/ \
+  && mv /tmp/tailscale_1.78.1_amd64/tailscaled /usr/local/bin/ \
+  && rm -rf /tmp/ts.tgz /tmp/tailscale_1.78.1_amd64
+
   && corepack enable
 
 # Modify the existing node user/group to have the specified UID/GID to match host user
