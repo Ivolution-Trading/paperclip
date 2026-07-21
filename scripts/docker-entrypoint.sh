@@ -37,8 +37,8 @@ fi
 
 # A freshly-mounted platform volume (e.g. Railway) shadows the build-time chown with a
 # root-owned dir even when no UID/GID remap occurred — always ensure node owns the data dir.
-if [ "$changed" = "1" ] || [ "$(stat -c %u /paperclip)" != "$(id -u node)" ]; then
-    chown -R node:node /paperclip
-fi
+# Always repair data-dir ownership at boot (files created by root shells/CLI runs on the
+# shared volume would otherwise wedge the unprivileged app — EACCES on .env/config).
+chown -R node:node /paperclip
 
 exec gosu node "$@"
