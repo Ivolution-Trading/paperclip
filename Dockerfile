@@ -13,6 +13,11 @@ RUN usermod -u $USER_UID --non-unique node \
   && usermod -g $USER_GID -d /paperclip node
 
 FROM base AS deps
+# Native optional deps (cpu-features via ssh2) need a compiler toolchain on cache-cold
+# builds; without it pnpm install hard-fails on gyp ("not found: make").
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY cli/package.json cli/
