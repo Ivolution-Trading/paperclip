@@ -67,6 +67,9 @@ COPY --from=deps /app /app
 COPY . .
 RUN pnpm --filter @paperclipai/ui build
 RUN pnpm --filter @paperclipai/plugin-sdk build
+# Bundled plugins ship as built dist/ (manifest.js + worker.js + ui); without this
+# the plugin loader errors with "no longer exposes a Paperclip manifest".
+RUN pnpm --filter @paperclipai/plugin-llm-wiki build
 RUN pnpm --filter @paperclipai/server build
 RUN test -f server/dist/index.js || (echo "ERROR: server build output missing" && exit 1)
 
