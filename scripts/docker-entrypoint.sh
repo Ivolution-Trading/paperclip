@@ -35,7 +35,9 @@ if [ "$(id -g node)" -ne "$PGID" ]; then
     changed=1
 fi
 
-if [ "$changed" = "1" ]; then
+# A freshly-mounted platform volume (e.g. Railway) shadows the build-time chown with a
+# root-owned dir even when no UID/GID remap occurred — always ensure node owns the data dir.
+if [ "$changed" = "1" ] || [ "$(stat -c %u /paperclip)" != "$(id -u node)" ]; then
     chown -R node:node /paperclip
 fi
 
